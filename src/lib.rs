@@ -1,14 +1,6 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![allow(dead_code)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod path;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+#[cfg(feature = "quick-xml")]
+pub mod quick_xml;

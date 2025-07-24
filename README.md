@@ -17,3 +17,18 @@ If you prefer to use this project as a direct dependency, you can add it to your
 ```shell
 cargo add sniplets
 ```
+
+## Modules
+
+All modules that require any external dependencies are behind feature flags.
+
+### `path`
+Contains utility functions for working with file paths.
+
+### `quick_xml`
+Provides utility functions for working with XML files using the `quick-xml` crate.
+
+* Feature flag: `quick_xml`
+* Dependencies:
+  - `quick-xml`
+  - `serde`
