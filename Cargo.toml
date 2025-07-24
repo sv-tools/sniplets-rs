@@ -1,6 +1,6 @@
 [package]
 name = "sniplets"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["Serey Vilgelm <sergey@vilgelm.com>"]
 description = "A collection of handy utility functions for Rust projects."
