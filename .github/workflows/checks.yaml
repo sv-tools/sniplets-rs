@@ -1,0 +1,124 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+  schedule:
+    - cron: "0 0 * * 0"
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions: read-all
+
+jobs:
+  BuildJob:
+    name: Build per OS
+    strategy:
+        matrix:
+            os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4.2.2 # immutable action, safe to use the versions
+      - run: cargo build --all-features --all-targets --verbose
+  Build:
+    name: Wait for build jobs to finish
+    needs: BuildJob
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Build jobs succeeded"
+  Format:
+    name: Check Rust code formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2 # immutable action, safe to use the versions
+      - run: cargo fmt --all --check --verbose
+  Clippy:
+    name: Check Rust code with Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2 # immutable action, safe to use the versions
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          cache-targets: false
+          cache-all-crates: true
+      - run: cargo install-tools
+      - run: cargo clippy --all-features --all-targets --verbose -- --deny warnings
+      - run: cargo clippy --all-features --all-targets --quiet --message-format=json | cargo-action-fmt
+        if: failure()
+  TestJob:
+    name: Test per OS
+    strategy:
+      matrix:
+        os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4.2.2 # immutable action, safe to use the versions
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          cache-targets: false
+          cache-all-crates: true
+      - run: cargo install-tools
+      - name: Run tests
+        run: cargo llvm-cov nextest --all-features --all-targets --no-fail-fast --verbose
+      - name: Prepare coverage report
+        if: ${{ !cancelled() }}
+        run: cargo llvm-cov report --lcov --output-path coverage.lcov
+      - name: Upload coverage reports to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@47f89e9acb64b76debcd5ea40642d25a4adced9f # v1.1.1
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  Tests:
+    name: Wait for testing jobs to finish
+    needs: TestJob
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Testing jobs succeeded"
+  Deps:
+    name: Check dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2 # immutable action, safe to use the versions
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          cache-targets: false
+          cache-all-crates: true
+      - run: cargo install-tools
+      - name: Machete
+        run: cargo machete
+      - name: Deny
+        run: cargo deny check all
+  PublishCrateJob:
+    name: Test publishing per crate
+    strategy:
+      matrix:
+        crate: [ "sniplets" ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2 # immutable action, safe to use the versions
+      - name: Dry run publish
+        run: cargo publish --all-features --package ${{ matrix.crate }} --dry-run --verbose
+      - name: Create package
+        run: cargo package --all-features --package ${{ matrix.crate }} --verbose
+      - uses: actions/upload-artifact@v4.6.2 # immutable action, safe to use the versions
+        with:
+          name: ${{ matrix.crate }}-crate
+          path: target/package/${{ matrix.crate }}-*.crate
+  Publish:
+    name: Wait for publishing jobs to finish
+    needs: PublishCrateJob
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Publishing Passed"
