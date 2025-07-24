@@ -10,7 +10,13 @@ repository = "https://github.com/sv-tools/sniplets-rs.git"
 readme = "README.md"
 keywords = ["utilities", "gist", "snippets"]
 categories = ["development-tools"]
-include = ["LICENSE-MIT", "LICENSE-APACHE"]
+include = [
+  "src",
+  "Cargo.toml",
+  "README.md",
+  "LICENSE-APACHE",
+  "LICENSE-MIT",
+]
 
 [badges]
 maintenance = { status = "actively-developed" }
