@@ -18,32 +18,46 @@ env:
 permissions: read-all
 
 jobs:
+  RustMeta:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.rustmeta.outputs.matrix }}
+      publish: ${{ steps.rustmeta.outputs.publish }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: sv-tools/rust-metadata-action@8618602bef8488998677a4ed006f9a9a35cf6756 # v0.1.0
+        id: rustmeta
   BuildJob:
     name: Build per OS
+    needs: RustMeta
     strategy:
-        matrix:
-            os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+      matrix:
+        os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+        args: ${{ fromJSON(needs.RustMeta.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5.0.0 # immutable action, safe to use the versions
-      - run: cargo build --all-features --all-targets --verbose
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - run: cargo build ${{ matrix.args }} --no-default-features --all-targets --verbose
   Build:
     name: Wait for build jobs to finish
     needs: BuildJob
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     steps:
-      - run: echo "Build jobs succeeded"
+      - name: Check status
+        if: ${{ needs.BuildJob.result != 'success' }}
+        run: exit 1
   Format:
     name: Check Rust code formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0 # immutable action, safe to use the versions
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
       - run: cargo fmt --all --check --verbose
   Clippy:
     name: Check Rust code with Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0 # immutable action, safe to use the versions
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
       - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           cache-targets: false
@@ -54,19 +68,21 @@ jobs:
         if: failure()
   TestJob:
     name: Test per OS
+    needs: RustMeta
     strategy:
       matrix:
         os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+        args: ${{ fromJSON(needs.RustMeta.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5.0.0 # immutable action, safe to use the versions
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
       - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           cache-targets: false
           cache-all-crates: true
       - run: cargo install-tools
       - name: Run tests
-        run: cargo llvm-cov nextest --all-features --all-targets --no-fail-fast --verbose
+        run: cargo llvm-cov nextest ${{ matrix.args }} --no-default-features --all-targets --no-fail-fast --verbose
       - name: Prepare coverage report
         if: ${{ !cancelled() }}
         run: cargo llvm-cov report --lcov --output-path coverage.lcov
@@ -84,13 +100,16 @@ jobs:
     name: Wait for testing jobs to finish
     needs: TestJob
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     steps:
-      - run: echo "Testing jobs succeeded"
+      - name: Check status
+        if: ${{ needs.TestJob.result != 'success' }}
+        run: exit 1
   Deps:
     name: Check dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0 # immutable action, safe to use the versions
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
       - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           cache-targets: false
@@ -102,23 +121,27 @@ jobs:
         run: cargo deny check all
   PublishCrateJob:
     name: Test publishing per crate
+    needs: RustMeta
     strategy:
       matrix:
-        crate: [ "sniplets" ]
+        package: ${{ fromJSON(needs.RustMeta.outputs.publish) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0 # immutable action, safe to use the versions
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
       - name: Dry run publish
-        run: cargo publish --all-features --package ${{ matrix.crate }} --dry-run --verbose
+        run: cargo publish --all-features --package ${{ matrix.package }} --dry-run --verbose
       - name: Create package
-        run: cargo package --all-features --package ${{ matrix.crate }} --verbose
-      - uses: actions/upload-artifact@v4.6.2 # immutable action, safe to use the versions
+        run: cargo package --all-features --package ${{ matrix.package }} --verbose
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ matrix.crate }}-crate
-          path: target/package/${{ matrix.crate }}-*.crate
+          name: ${{ matrix.package }}-crate
+          path: target/package/${{ matrix.package }}-*.crate
   Publish:
     name: Wait for publishing jobs to finish
     needs: PublishCrateJob
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     steps:
-      - run: echo "Publishing Passed"
+      - name: Check status
+        if: ${{ needs.PublishCrateJob.result != 'success' }}
+        run: exit 1
