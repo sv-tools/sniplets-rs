@@ -45,7 +45,7 @@ jobs:
     if: ${{ always() }}
     steps:
       - name: Check status
-        if: ${{ needs.TestJob.result != 'success' }}
+        if: ${{ needs.BuildJob.result != 'success' }}
         run: exit 1
   Format:
     name: Check Rust code formatting
