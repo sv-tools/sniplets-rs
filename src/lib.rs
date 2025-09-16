@@ -2,5 +2,5 @@
 
 pub mod path;
 
-#[cfg(feature = "quick-xml")]
+#[cfg(feature = "quick_xml")]
 pub mod quick_xml;
