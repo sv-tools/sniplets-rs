@@ -24,7 +24,7 @@ jobs:
       matrix: ${{ steps.rustmeta.outputs.matrix }}
       publish: ${{ steps.rustmeta.outputs.publish }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - uses: sv-tools/rust-metadata-action@8618602bef8488998677a4ed006f9a9a35cf6756 # v0.1.0
         id: rustmeta
   BuildJob:
@@ -36,7 +36,7 @@ jobs:
         args: ${{ fromJSON(needs.RustMeta.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - run: cargo build ${{ matrix.args }} --no-default-features --all-targets --verbose
   Build:
     name: Wait for build jobs to finish
@@ -51,13 +51,13 @@ jobs:
     name: Check Rust code formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - run: cargo fmt --all --check --verbose
   Clippy:
     name: Check Rust code with Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           cache-targets: false
@@ -75,7 +75,7 @@ jobs:
         args: ${{ fromJSON(needs.RustMeta.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           cache-targets: false
@@ -109,7 +109,7 @@ jobs:
     name: Check dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           cache-targets: false
@@ -127,12 +127,12 @@ jobs:
         package: ${{ fromJSON(needs.RustMeta.outputs.publish) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.5.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.5.0
       - name: Dry run publish
         run: cargo publish --all-features --package ${{ matrix.package }} --dry-run --verbose
       - name: Create package
         run: cargo package --all-features --package ${{ matrix.package }} --verbose
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: ${{ matrix.package }}-crate
           path: target/package/${{ matrix.package }}-*.crate
