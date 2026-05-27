@@ -26,5 +26,5 @@ default = []
 quick_xml = ["dep:quick-xml", "dep:serde"]
 
 [dependencies]
-quick-xml = { version = "0.39.0", features = ["serialize"], optional = true }
+quick-xml = { version = "0.40.1", features = ["serialize"], optional = true }
 serde = { version = "1.0.219", features = ["derive"], optional = true }
